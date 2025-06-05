@@ -1,1 +1,71 @@
-# Falta aca
+version: '3.8'
+
+services:
+  # Aplicación Node.js
+  app:
+    build: 
+      context: ./app
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=testdb
+    networks:
+      - app-network
+    restart: unless-stopped    
+  # Servidor web Nginx
+  nginx:
+    build: 
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - app
+    networks:
+      - app-network
+    restart: unless-stopped
+    # Reiniciar nginx cada vez para asegurar nueva configuración
+    
+  # Base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+      start_period: 60s
+
+# Definición de volúmenes
+volumes:
+  mysql_data:
+    driver: local
+
+# Definición de redes
+networks:
+  app-network:
+    driver: bridge
+    # Configuración de red específica para mejor balanceado
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    # Habilitar resolución DNS interna
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"
