@@ -283,3 +283,5 @@ Este proyecto fue desarrollado como Trabajo Integrador para la materia "Arquitec
 
 ---
 
+## 🔗 link del video demostración
+- [YouTube] ( https://youtu.be/S0fjS1JK7b4 )
